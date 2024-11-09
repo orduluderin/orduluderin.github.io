@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVD Yazısı Hareketi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .dvd-text {
+            font-family: 'Arial', sans-serif;
+            font-size: 50px;
+            font-weight: bold;
+            color: #fff;
+            white-space: nowrap;
+            animation: moveDVD 10s linear infinite;
+        }
+
+        @keyframes moveDVD {
+            0% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(100vw);
+            }
+            50% {
+                transform: translateX(100vw) translateY(100vh);
+            }
+            75% {
+                transform: translateX(0) translateY(100vh);
+            }
+            100% {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dvd-text">DVD</div>
+</body>
+</html>
