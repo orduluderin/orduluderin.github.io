@@ -75,6 +75,18 @@
             border: 1px solid #ddd;
             border-radius: 5px;
         }
+        .delete-button {
+            padding: 5px 10px;
+            background-color: #FF6347;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+        }
+        .delete-button:hover {
+            background-color: #FF4500;
+        }
     </style>
 </head>
 <body>
@@ -110,8 +122,12 @@
             return;
         }
 
+        // Fotoğraf ID'sini benzersiz yapmak için Date.now() kullanıyoruz
+        var photoId = Date.now();
+
         // Yeni fotoğraf ve ilk yorum objesi
         var newPhoto = {
+            id: photoId,
             url: photoUrl,
             initialComment: commentText,
             comments: []
@@ -141,7 +157,7 @@
         photoList.innerHTML = ""; // Eski verileri temizle
 
         // Fotoğrafları döngü ile listele
-        photos.forEach(function(photo, index) {
+        photos.forEach(function(photo) {
             var photoDiv = document.createElement('div');
             photoDiv.classList.add('photo-container');
 
@@ -156,8 +172,9 @@
                         <div class="comment">${comment}</div>
                     `).join('')}
                 </div>
-                <input class="comment-input" type="text" placeholder="Yeni yorum ekle..." id="commentInput${index}" />
-                <button onclick="addComment(${index})">Yorum Ekle</button>
+                <input class="comment-input" type="text" placeholder="Yeni yorum ekle..." id="commentInput${photo.id}" />
+                <button onclick="addComment(${photo.id})">Yorum Ekle</button>
+                <button class="delete-button" onclick="deletePhoto(${photo.id})">Sil</button>
             `;
 
             // Fotoğrafı sayfaya ekle
@@ -166,8 +183,8 @@
     }
 
     // Yorum ekleme fonksiyonu
-    function addComment(photoIndex) {
-        var commentInput = document.getElementById('commentInput' + photoIndex);
+    function addComment(photoId) {
+        var commentInput = document.getElementById('commentInput' + photoId);
         var newComment = commentInput.value;
 
         // Boş yorum kontrolü
@@ -180,7 +197,8 @@
         var photos = JSON.parse(localStorage.getItem('photos'));
 
         // İlgili fotoğrafa yeni yorum ekle
-        photos[photoIndex].comments.push(newComment);
+        var photo = photos.find(p => p.id === photoId);
+        photo.comments.push(newComment);
 
         // Güncellenmiş veriyi localStorage'a kaydet
         localStorage.setItem('photos', JSON.stringify(photos));
@@ -190,6 +208,21 @@
 
         // Yorum giriş alanını temizle
         commentInput.value = "";
+    }
+
+    // Fotoğraf silme fonksiyonu
+    function deletePhoto(photoId) {
+        // LocalStorage'dan mevcut fotoğrafları al
+        var photos = JSON.parse(localStorage.getItem('photos'));
+
+        // Fotoğrafı sil
+        photos = photos.filter(p => p.id !== photoId);
+
+        // Güncellenmiş veriyi localStorage'a kaydet
+        localStorage.setItem('photos', JSON.stringify(photos));
+
+        // Sayfayı güncelle
+        loadPhotos();
     }
 </script>
 
