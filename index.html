@@ -3,37 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sohbet Uygulaması</title>
+    <title>Fotoğraf ve Yorum Sistemi</title>
     <style>
         body { font-family: Arial, sans-serif; }
-        #chat-box { width: 100%; height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
-        .message { margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-        .message img { max-width: 200px; }
-        #message-input { width: 80%; padding: 10px; }
-        #send-button { padding: 10px; }
-        #image-input { margin-top: 10px; }
-        .heart { cursor: pointer; color: red; }
+        #photo-gallery { display: flex; flex-wrap: wrap; gap: 20px; }
+        .photo { width: 200px; border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .photo img { width: 100%; height: 150px; object-fit: cover; }
+        .comments { margin-top: 10px; }
+        .comment { background-color: #f0f0f0; padding: 5px; margin: 5px 0; border-radius: 5px; }
+        input[type="file"] { margin-top: 10px; }
+        #upload-button { margin-top: 10px; }
+        #comment-input { width: 100%; padding: 5px; }
+        #comment-button { margin-top: 5px; padding: 5px 10px; }
     </style>
 </head>
 <body>
 
-<h2>Sohbet Uygulaması</h2>
-<div id="chat-box"></div>
-<input type="text" id="message-input" placeholder="Mesajınızı yazın...">
-<button id="send-button">Gönder</button>
+<h2>Fotoğraf ve Yorum Sistemi</h2>
 
-<!-- Fotoğraf yükleme -->
+<!-- Fotoğraf yükleme alanı -->
 <input type="file" id="image-input">
 <button id="upload-button">Fotoğraf Yükle</button>
 
+<!-- Fotoğraf galerisi -->
+<div id="photo-gallery"></div>
+
+<!-- Yorum eklemek için alan -->
+<input type="text" id="comment-input" placeholder="Yorum yapın...">
+<button id="comment-button">Yorum Yap</button>
+
 <!-- Firebase SDK'larını dahil et -->
 <script type="module">
-    // Import Firebase ve gerekli fonksiyonları
+    // Firebase'i ve gerekli modülleri içe aktar
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-database.js";
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-storage.js";
 
-    // Firebase konfigürasyon bilgilerini buraya ekle
+    // Firebase yapılandırma bilgileri
     const firebaseConfig = {
       apiKey: "AIzaSyDTw5-unWMTSxi2YXVkN6bK_RWTw9gBPm4",
       authDomain: "outlowe-363b4.firebaseapp.com",
@@ -49,115 +55,86 @@
     const database = getDatabase(app);
     const storage = getStorage(app);
 
-    // HTML öğelerini seç
-    const chatBox = document.getElementById("chat-box");
-    const messageInput = document.getElementById("message-input");
-    const sendButton = document.getElementById("send-button");
+    // HTML elemanlarını seç
     const imageInput = document.getElementById("image-input");
     const uploadButton = document.getElementById("upload-button");
+    const photoGallery = document.getElementById("photo-gallery");
+    const commentInput = document.getElementById("comment-input");
+    const commentButton = document.getElementById("comment-button");
 
-    // Mesaj gönderme fonksiyonu
-    sendButton.onclick = function() {
-        const message = messageInput.value.trim();
-        if (message) {
-            const messagesRef = ref(database, 'messages');
-            const newMessageRef = push(messagesRef);
-            newMessageRef.set({
-                text: message,
-                imageUrl: null,
-                heartCount: 0,
-                timestamp: Date.now()
-            });
-            messageInput.value = '';  // Mesaj kutusunu temizle
-        }
-    };
-
-    // Fotoğraf yükleme fonksiyonu
+    // Fotoğraf yükleme
     uploadButton.addEventListener("click", () => {
         const file = imageInput.files[0];
         if (file) {
-            const storageRef = storageRef(storage, 'images/' + file.name);
-            uploadBytes(storageRef, file).then((snapshot) => {
+            const storageReference = storageRef(storage, 'photos/' + file.name);
+            uploadBytes(storageReference, file).then((snapshot) => {
+                console.log("Fotoğraf yüklendi!");
                 getDownloadURL(snapshot.ref).then((downloadURL) => {
-                    const messagesRef = ref(database, 'messages');
-                    const newMessageRef = push(messagesRef);
-                    newMessageRef.set({
-                        text: "Bir fotoğraf paylaşıldı",
+                    const photosRef = ref(database, 'photos');
+                    const newPhotoRef = push(photosRef);
+                    newPhotoRef.set({
                         imageUrl: downloadURL,
-                        heartCount: 0,
                         timestamp: Date.now()
                     });
+                    imageInput.value = ''; // Dosya inputu temizle
                 });
+            }).catch((error) => {
+                console.error("Fotoğraf yüklenirken hata oluştu: ", error);
             });
         }
     });
 
-    // Mesajları Firebase'ten al ve sayfada göster
-    const messagesRef = ref(database, 'messages');
-    onChildAdded(messagesRef, function(snapshot) {
-        const message = snapshot.val();
-        const messageDiv = document.createElement("div");
-        messageDiv.classList.add("message");
-        
-        // Mesaj metni
-        const textDiv = document.createElement("div");
-        textDiv.textContent = message.text;
-        messageDiv.appendChild(textDiv);
-
-        // Fotoğraf URL'si varsa fotoğrafı göster
-        if (message.imageUrl) {
-            const image = document.createElement("img");
-            image.src = message.imageUrl;
-            messageDiv.appendChild(image);
-        }
-
-        // Kalp butonu ve sayacı
-        const heartButton = document.createElement("span");
-        heartButton.textContent = "❤️ " + message.heartCount;
-        heartButton.classList.add("heart");
-        heartButton.addEventListener("click", () => {
-            // Kalp tıklandığında sayacı artır
-            const messageRef = ref(database, 'messages/' + snapshot.key);
-            messageRef.update({
-                heartCount: message.heartCount + 1
+    // Yorum gönderme
+    commentButton.addEventListener("click", () => {
+        const comment = commentInput.value.trim();
+        if (comment) {
+            const photoId = commentButton.getAttribute('data-photo-id');
+            const commentsRef = ref(database, 'photos/' + photoId + '/comments');
+            const newCommentRef = push(commentsRef);
+            newCommentRef.set({
+                text: comment,
+                timestamp: Date.now()
             });
-        });
-        messageDiv.appendChild(heartButton);
+            commentInput.value = ''; // Yorum kutusunu temizle
+        }
+    });
 
-        // Yorum kısmı
-        const commentInput = document.createElement("input");
-        commentInput.placeholder = "Yorum yaz...";
-        const commentButton = document.createElement("button");
-        commentButton.textContent = "Yorum Yap";
+    // Firebase'den fotoğrafları al ve galeriyi oluştur
+    const photosRef = ref(database, 'photos');
+    onChildAdded(photosRef, function(snapshot) {
+        const photo = snapshot.val();
+        const photoDiv = document.createElement("div");
+        photoDiv.classList.add("photo");
         
-        commentButton.addEventListener("click", () => {
-            const comment = commentInput.value.trim();
-            if (comment) {
-                const commentsRef = ref(database, 'messages/' + snapshot.key + '/comments');
-                const newCommentRef = push(commentsRef);
-                newCommentRef.set({
-                    text: comment,
-                    timestamp: Date.now()
-                });
-                commentInput.value = '';  // Yorum kutusunu temizle
-            }
-        });
+        // Fotoğrafı ekle
+        const img = document.createElement("img");
+        img.src = photo.imageUrl;
+        photoDiv.appendChild(img);
 
-        messageDiv.appendChild(commentInput);
-        messageDiv.appendChild(commentButton);
+        // Yorumları ekle
+        const commentsDiv = document.createElement("div");
+        commentsDiv.classList.add("comments");
 
-        // Yorumları yükle
-        const commentsRef = ref(database, 'messages/' + snapshot.key + '/comments');
+        const commentsRef = ref(database, 'photos/' + snapshot.key + '/comments');
         onChildAdded(commentsRef, function(commentSnapshot) {
             const comment = commentSnapshot.val();
             const commentDiv = document.createElement("div");
+            commentDiv.classList.add("comment");
             commentDiv.textContent = comment.text;
-            messageDiv.appendChild(commentDiv);
+            commentsDiv.appendChild(commentDiv);
         });
 
-        chatBox.appendChild(messageDiv);
-        chatBox.scrollTop = chatBox.scrollHeight;  // Sohbeti en alta kaydır
+        // Fotoğraf ve yorumları galeride göster
+        photoDiv.appendChild(commentsDiv);
+        photoGallery.appendChild(photoDiv);
+
+        // Yorum yapmak için buton ekle
+        const commentButton = document.createElement("button");
+        commentButton.textContent = "Yorum Yap";
+        commentButton.setAttribute('data-photo-id', snapshot.key);
+        photoDiv.appendChild(commentButton);
     });
+
 </script>
 
 </body>
